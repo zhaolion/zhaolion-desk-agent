@@ -1,0 +1,1 @@
+{"version":3,"file":"stream.service.js","sourceRoot":"","sources":["../../../src/task/service/stream.service.ts"],"names":[],"mappings":"AAIA,MAAM,CAAC,MAAM,OAAO,GAAG;IACrB,aAAa,EAAE,sBAAsB;IACrC,UAAU,EAAE,CAAC,SAAe,EAAE,EAAE,CAAC,gBAAgB,SAAS,SAAS;IACnE,SAAS,EAAE,CAAC,SAAe,EAAE,EAAE,CAAC,gBAAgB,SAAS,QAAQ;CACzD,CAAC"}
