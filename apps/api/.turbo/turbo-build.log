@@ -1,0 +1,10 @@
+
+> @desk-agent/api@0.0.1 build /Users/liang.zhao/code/github/zhaolion/desk-agent/.worktrees/core-setup/apps/api
+> tsc
+
+src/config.ts(11,32): error TS4111: Property 'API_PORT' comes from an index signature, so it must be accessed with ['API_PORT'].
+src/config.ts(12,23): error TS4111: Property 'API_HOST' comes from an index signature, so it must be accessed with ['API_HOST'].
+src/config.ts(13,27): error TS4111: Property 'REDIS_URL' comes from an index signature, so it must be accessed with ['REDIS_URL'].
+src/config.ts(14,30): error TS4111: Property 'DATABASE_URL' comes from an index signature, so it must be accessed with ['DATABASE_URL'].
+src/config.ts(15,27): error TS4111: Property 'NODE_ENV' comes from an index signature, so it must be accessed with ['NODE_ENV'].
+ ELIFECYCLE  Command failed with exit code 2.

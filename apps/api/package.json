@@ -1,0 +1,25 @@
+{
+  "name": "@desk-agent/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@desk-agent/domain": "workspace:*",
+    "@desk-agent/shared": "workspace:*",
+    "hono": "^4.6.0",
+    "@hono/node-server": "^1.13.0",
+    "ioredis": "^5.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0"
+  }
+}
