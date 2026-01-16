@@ -18,6 +18,7 @@ export interface TaskRun {
   userId: UUID;
   agentId: UUID;
   prompt: string;
+  systemPrompt: string | null;
   variables: Record<string, unknown> | null;
   status: TaskRunStatus;
   progress: number;
