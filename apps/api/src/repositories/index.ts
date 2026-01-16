@@ -4,3 +4,6 @@ export { RedisWebhookRepository } from "./redis-webhook.repository.js";
 export { RedisAgentRepository } from "./redis-agent.repository.js";
 export { PgTaskRunRepository } from "./pg-task-run.repository.js";
 export { PgUserRepository } from "./pg-user.repository.js";
+export { PgTaskRepository } from "./pg-task.repository.js";
+export { PgAgentRepository } from "./pg-agent.repository.js";
+export { PgWebhookRepository } from "./pg-webhook.repository.js";
