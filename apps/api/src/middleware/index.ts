@@ -1,1 +1,1 @@
-export { createAuthMiddleware, optionalAuthMiddleware, type AuthContext } from "./auth.js";
+export { createAuthMiddleware, createOptionalAuthMiddleware, type AuthContext } from "./auth.js";

@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import type { Context, Next } from "hono";
 import type { JwtService } from "../services/jwt.service.js";
+import type { PgApiKeyRepository } from "../repositories/pg-apikey.repository.js";
 
 export interface AuthContext {
   userId: string;
@@ -16,15 +17,7 @@ declare module "hono" {
   }
 }
 
-// Simple API key store (replace with DB lookup later)
-const API_KEYS: Record<string, { userId: string; keyId: string }> = {
-  "dsk_test_development123456789": {
-    userId: "user-dev-123",
-    keyId: "key-dev-123",
-  },
-};
-
-export function createAuthMiddleware(jwtService: JwtService) {
+export function createAuthMiddleware(jwtService: JwtService, apiKeyRepository?: PgApiKeyRepository) {
   return createMiddleware(async (c: Context, next: Next) => {
     // Try API Key first
     const apiKey = c.req.header("X-API-Key");
@@ -33,18 +26,30 @@ export function createAuthMiddleware(jwtService: JwtService) {
         return c.json({ error: "Invalid API key format" }, 401);
       }
 
-      const keyData = API_KEYS[apiKey];
-      if (!keyData) {
-        return c.json({ error: "Invalid API key" }, 401);
+      // Dev key for testing
+      if (apiKey === "dsk_test_development123456789") {
+        c.set("auth", {
+          userId: "user-dev-123",
+          apiKeyId: "key-dev-123",
+          isTestKey: true,
+        });
+        return next();
       }
 
-      c.set("auth", {
-        userId: keyData.userId,
-        apiKeyId: keyData.keyId,
-        isTestKey: apiKey.startsWith("dsk_test_"),
-      });
+      // Verify from database
+      if (apiKeyRepository) {
+        const keyData = await apiKeyRepository.verifyKey(apiKey);
+        if (keyData) {
+          c.set("auth", {
+            userId: keyData.userId,
+            apiKeyId: keyData.keyId,
+            isTestKey: false,
+          });
+          return next();
+        }
+      }
 
-      return next();
+      return c.json({ error: "Invalid API key" }, 401);
     }
 
     // Try JWT Bearer token
@@ -68,21 +73,33 @@ export function createAuthMiddleware(jwtService: JwtService) {
 }
 
 // Optional: skip auth for certain paths
-export const optionalAuthMiddleware = createMiddleware(async (c: Context, next: Next) => {
-  const apiKey = c.req.header("X-API-Key");
+export function createOptionalAuthMiddleware(apiKeyRepository?: PgApiKeyRepository) {
+  return createMiddleware(async (c: Context, next: Next) => {
+    const apiKey = c.req.header("X-API-Key");
 
-  if (apiKey) {
-    if (apiKey.startsWith("dsk_live_") || apiKey.startsWith("dsk_test_")) {
-      const keyData = API_KEYS[apiKey];
-      if (keyData) {
-        c.set("auth", {
-          userId: keyData.userId,
-          apiKeyId: keyData.keyId,
-          isTestKey: apiKey.startsWith("dsk_test_"),
-        });
+    if (apiKey) {
+      if (apiKey.startsWith("dsk_live_") || apiKey.startsWith("dsk_test_")) {
+        // Dev key for testing
+        if (apiKey === "dsk_test_development123456789") {
+          c.set("auth", {
+            userId: "user-dev-123",
+            apiKeyId: "key-dev-123",
+            isTestKey: true,
+          });
+        } else if (apiKeyRepository) {
+          // Verify from database
+          const keyData = await apiKeyRepository.verifyKey(apiKey);
+          if (keyData) {
+            c.set("auth", {
+              userId: keyData.userId,
+              apiKeyId: keyData.keyId,
+              isTestKey: false,
+            });
+          }
+        }
       }
     }
-  }
 
-  await next();
-});
+    await next();
+  });
+}
