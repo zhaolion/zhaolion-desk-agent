@@ -11,6 +11,7 @@ import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
+import { EventSubscriber } from "./services/event-subscriber.js";
 import { StorageService } from "./services/storage.service.js";
 import { authMiddleware } from "./middleware/index.js";
 
@@ -26,6 +27,29 @@ const agentRepository = new RedisAgentRepository(redis);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 const storageService = new StorageService();
+
+// Create event subscriber for webhook integration
+const eventSubscriber = new EventSubscriber(
+  config.redisUrl,
+  taskRunRepository,
+  webhookDispatcher
+);
+
+// Start event subscriber
+eventSubscriber.start().catch(console.error);
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("Shutting down...");
+  await eventSubscriber.stop();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  console.log("Shutting down...");
+  await eventSubscriber.stop();
+  process.exit(0);
+});
 
 // Middleware
 app.use("*", logger());
