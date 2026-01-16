@@ -4,6 +4,7 @@ export interface Config {
   redisUrl: string;
   databaseUrl: string;
   nodeEnv: "development" | "production" | "test";
+  jwtSecret: string;
 }
 
 export function loadConfig(): Config {
@@ -13,5 +14,6 @@ export function loadConfig(): Config {
     redisUrl: process.env["REDIS_URL"] ?? "redis://localhost:6379",
     databaseUrl: process.env["DATABASE_URL"] ?? "postgresql://localhost:5432/desk_agent",
     nodeEnv: (process.env["NODE_ENV"] as Config["nodeEnv"]) ?? "development",
+    jwtSecret: process.env["JWT_SECRET"] ?? "dev-secret-change-in-production",
   };
 }

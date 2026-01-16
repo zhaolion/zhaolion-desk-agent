@@ -3,6 +3,7 @@ import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, bigin
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }).unique().notNull(),
+  passwordHash: varchar("password_hash", { length: 255 }),
   name: varchar("name", { length: 100 }),
   status: varchar("status", { length: 20 }).default("active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
