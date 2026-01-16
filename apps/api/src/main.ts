@@ -10,7 +10,8 @@ import { createTaskRunRoutes, createRunRoutes, createTasksRoutes } from "./route
 import { createAgentsRoutes } from "./routes/agents/index.js";
 import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { createAuthRoutes } from "./routes/auth/index.js";
-import { PgTaskRunRepository, PgTaskRepository, PgWebhookRepository, PgAgentRepository, PgUserRepository } from "./repositories/index.js";
+import { createApiKeyRoutes } from "./routes/api-keys/index.js";
+import { PgTaskRunRepository, PgTaskRepository, PgWebhookRepository, PgAgentRepository, PgUserRepository, PgApiKeyRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { EventSubscriber } from "./services/event-subscriber.js";
@@ -29,13 +30,14 @@ const taskRepository = new PgTaskRepository(db);
 const webhookRepository = new PgWebhookRepository(db);
 const agentRepository = new PgAgentRepository(db);
 const userRepository = new PgUserRepository(db);
+const apiKeyRepository = new PgApiKeyRepository(db);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 const storageService = new StorageService();
 const jwtService = new JwtService(config.jwtSecret);
 
-// Create auth middleware with JWT service
-const authMiddleware = createAuthMiddleware(jwtService);
+// Create auth middleware with JWT service and API key repository
+const authMiddleware = createAuthMiddleware(jwtService, apiKeyRepository);
 
 // Create event subscriber for webhook integration
 const eventSubscriber = new EventSubscriber(
@@ -69,6 +71,7 @@ app.use("/tasks/*", authMiddleware);
 app.use("/runs/*", authMiddleware);
 app.use("/webhooks/*", authMiddleware);
 app.use("/agents/*", authMiddleware);
+app.use("/api-keys/*", authMiddleware);
 app.use("/auth/me", authMiddleware);
 
 // Routes
@@ -79,6 +82,7 @@ app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
 app.route("/runs", createRunRoutes(taskRunRepository, streamService, storageService));
 app.route("/webhooks", createWebhookRoutes(webhookRepository, webhookDispatcher));
 app.route("/agents", createAgentsRoutes(agentRepository));
+app.route("/api-keys", createApiKeyRoutes(apiKeyRepository));
 
 // 404 handler
 app.notFound((c) => {
