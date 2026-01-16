@@ -4,29 +4,38 @@ import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import { Redis } from "ioredis";
 import { loadConfig } from "./config.js";
+import { createDb } from "./db/index.js";
 import { healthRoutes } from "./routes/health.js";
 import { createTaskRunRoutes, createRunRoutes, createTasksRoutes } from "./routes/tasks/index.js";
 import { createAgentsRoutes } from "./routes/agents/index.js";
 import { createWebhookRoutes } from "./routes/webhooks/index.js";
-import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository } from "./repositories/index.js";
+import { createAuthRoutes } from "./routes/auth/index.js";
+import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository, PgUserRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { EventSubscriber } from "./services/event-subscriber.js";
 import { StorageService } from "./services/storage.service.js";
-import { authMiddleware } from "./middleware/index.js";
+import { JwtService } from "./services/jwt.service.js";
+import { createAuthMiddleware } from "./middleware/index.js";
 
 const config = loadConfig();
 const app = new Hono();
 
 // Initialize dependencies
 const redis = new Redis(config.redisUrl);
+const db = createDb(config.databaseUrl);
 const taskRunRepository = new RedisTaskRunRepository(redis);
 const taskRepository = new RedisTaskRepository(redis);
 const webhookRepository = new RedisWebhookRepository(redis);
 const agentRepository = new RedisAgentRepository(redis);
+const userRepository = new PgUserRepository(db);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 const storageService = new StorageService();
+const jwtService = new JwtService(config.jwtSecret);
+
+// Create auth middleware with JWT service
+const authMiddleware = createAuthMiddleware(jwtService);
 
 // Create event subscriber for webhook integration
 const eventSubscriber = new EventSubscriber(
@@ -60,9 +69,11 @@ app.use("/tasks/*", authMiddleware);
 app.use("/runs/*", authMiddleware);
 app.use("/webhooks/*", authMiddleware);
 app.use("/agents/*", authMiddleware);
+app.use("/auth/me", authMiddleware);
 
 // Routes
 app.route("/", healthRoutes);
+app.route("/auth", createAuthRoutes(userRepository, jwtService));
 app.route("/tasks", createTasksRoutes(taskRepository));
 app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
 app.route("/runs", createRunRoutes(taskRunRepository, streamService, storageService));
