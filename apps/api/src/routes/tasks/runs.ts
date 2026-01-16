@@ -4,10 +4,10 @@ import { zValidator } from "@hono/zod-validator";
 import type { TaskRunRepository, TaskStreamService } from "@desk-agent/domain/task";
 import type { TaskRun } from "@desk-agent/domain";
 import { createTaskRunSchema, humanInputSchema } from "./schemas.js";
+import type { AuthContext } from "../../middleware/index.js";
 
-// Temporary mock - will be replaced with auth middleware
-const MOCK_USER_ID = "user-123";
-const MOCK_AGENT_ID = "agent-123";
+// Default agent ID - will be replaced with proper agent resolution later
+const DEFAULT_AGENT_ID = "agent-default";
 
 export function createTaskRunRoutes(
   repository: TaskRunRepository,
@@ -23,10 +23,11 @@ export function createTaskRunRoutes(
       const taskId = c.req.param("id");
       const body = c.req.valid("json");
 
+      const auth = c.get("auth");
       const taskRun = await repository.create({
         taskId,
-        userId: MOCK_USER_ID,
-        agentId: MOCK_AGENT_ID,
+        userId: auth.userId,
+        agentId: DEFAULT_AGENT_ID,
         prompt: body.prompt,
         variables: body.variables,
       });
