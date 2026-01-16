@@ -9,6 +9,7 @@ import { createTaskRunRoutes, createRunRoutes } from "./routes/tasks/index.js";
 import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { RedisTaskRunRepository, RedisWebhookRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
+import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { authMiddleware } from "./middleware/index.js";
 
 const config = loadConfig();
@@ -19,6 +20,7 @@ const redis = new Redis(config.redisUrl);
 const taskRunRepository = new RedisTaskRunRepository(redis);
 const webhookRepository = new RedisWebhookRepository(redis);
 const streamService = new RedisStreamService(config.redisUrl);
+const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 
 // Middleware
 app.use("*", logger());
@@ -33,7 +35,7 @@ app.use("/webhooks/*", authMiddleware);
 app.route("/", healthRoutes);
 app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
 app.route("/runs", createRunRoutes(taskRunRepository, streamService));
-app.route("/webhooks", createWebhookRoutes(webhookRepository));
+app.route("/webhooks", createWebhookRoutes(webhookRepository, webhookDispatcher));
 
 // 404 handler
 app.notFound((c) => {
