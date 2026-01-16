@@ -3,8 +3,12 @@ import { zValidator } from "@hono/zod-validator";
 import type { WebhookRepository } from "@desk-agent/domain/notify";
 import type { Webhook } from "@desk-agent/domain";
 import { createWebhookSchema, updateWebhookSchema } from "./schemas.js";
+import type { WebhookDispatcher } from "../../services/webhook-dispatcher.js";
 
-export function createWebhookRoutes(repository: WebhookRepository): Hono {
+export function createWebhookRoutes(
+  repository: WebhookRepository,
+  dispatcher: WebhookDispatcher
+): Hono {
   const routes = new Hono();
 
   // GET /webhooks - List user's webhooks
@@ -65,6 +69,19 @@ export function createWebhookRoutes(repository: WebhookRepository): Hono {
 
     await repository.delete(webhook.id);
     return c.json({ success: true });
+  });
+
+  // POST /webhooks/:id/test - Test webhook
+  routes.post("/:id/test", async (c) => {
+    const auth = c.get("auth");
+
+    const result = await dispatcher.testWebhook(c.req.param("id"), auth.userId);
+
+    if (!result.success && result.error === "Webhook not found") {
+      return c.json({ error: "Webhook not found" }, 404);
+    }
+
+    return c.json(result);
   });
 
   return routes;
