@@ -11,6 +11,10 @@
     "./task": {
       "types": "./dist/task/index.d.ts",
       "import": "./dist/task/index.js"
+    },
+    "./notify": {
+      "types": "./dist/notify/index.d.ts",
+      "import": "./dist/notify/index.js"
     }
   },
   "scripts": {
