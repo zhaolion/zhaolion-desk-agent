@@ -1,0 +1,10 @@
+node_modules
+.git
+.gitignore
+*.md
+.env*
+.worktrees
+dist
+coverage
+.turbo
+*.log
