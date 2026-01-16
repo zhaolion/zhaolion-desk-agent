@@ -10,7 +10,7 @@ import { createTaskRunRoutes, createRunRoutes, createTasksRoutes } from "./route
 import { createAgentsRoutes } from "./routes/agents/index.js";
 import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { createAuthRoutes } from "./routes/auth/index.js";
-import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository, PgUserRepository } from "./repositories/index.js";
+import { PgTaskRunRepository, PgTaskRepository, PgWebhookRepository, PgAgentRepository, PgUserRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { EventSubscriber } from "./services/event-subscriber.js";
@@ -24,10 +24,10 @@ const app = new Hono();
 // Initialize dependencies
 const redis = new Redis(config.redisUrl);
 const db = createDb(config.databaseUrl);
-const taskRunRepository = new RedisTaskRunRepository(redis);
-const taskRepository = new RedisTaskRepository(redis);
-const webhookRepository = new RedisWebhookRepository(redis);
-const agentRepository = new RedisAgentRepository(redis);
+const taskRunRepository = new PgTaskRunRepository(db);
+const taskRepository = new PgTaskRepository(db);
+const webhookRepository = new PgWebhookRepository(db);
+const agentRepository = new PgAgentRepository(db);
 const userRepository = new PgUserRepository(db);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
