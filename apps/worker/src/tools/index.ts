@@ -5,4 +5,9 @@ export type {
   ToolResult,
   ToolInput,
 } from "./types.js";
-export { shellTool } from "./builtin/index.js";
+export {
+  shellTool,
+  readFileTool,
+  writeFileTool,
+  listDirTool,
+} from "./builtin/index.js";
