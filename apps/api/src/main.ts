@@ -5,9 +5,10 @@ import { cors } from "hono/cors";
 import { Redis } from "ioredis";
 import { loadConfig } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
-import { createTaskRunRoutes, createRunRoutes } from "./routes/tasks/index.js";
+import { createTaskRunRoutes, createRunRoutes, createTasksRoutes } from "./routes/tasks/index.js";
+import { createAgentsRoutes } from "./routes/agents/index.js";
 import { createWebhookRoutes } from "./routes/webhooks/index.js";
-import { RedisTaskRunRepository, RedisWebhookRepository } from "./repositories/index.js";
+import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { authMiddleware } from "./middleware/index.js";
@@ -18,7 +19,9 @@ const app = new Hono();
 // Initialize dependencies
 const redis = new Redis(config.redisUrl);
 const taskRunRepository = new RedisTaskRunRepository(redis);
+const taskRepository = new RedisTaskRepository(redis);
 const webhookRepository = new RedisWebhookRepository(redis);
+const agentRepository = new RedisAgentRepository(redis);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 
@@ -30,12 +33,15 @@ app.use("*", cors());
 app.use("/tasks/*", authMiddleware);
 app.use("/runs/*", authMiddleware);
 app.use("/webhooks/*", authMiddleware);
+app.use("/agents/*", authMiddleware);
 
 // Routes
 app.route("/", healthRoutes);
+app.route("/tasks", createTasksRoutes(taskRepository));
 app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
 app.route("/runs", createRunRoutes(taskRunRepository, streamService));
 app.route("/webhooks", createWebhookRoutes(webhookRepository, webhookDispatcher));
+app.route("/agents", createAgentsRoutes(agentRepository));
 
 // 404 handler
 app.notFound((c) => {
