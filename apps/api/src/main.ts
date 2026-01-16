@@ -6,7 +6,8 @@ import { Redis } from "ioredis";
 import { loadConfig } from "./config.js";
 import { healthRoutes } from "./routes/health.js";
 import { createTaskRunRoutes, createRunRoutes } from "./routes/tasks/index.js";
-import { RedisTaskRunRepository } from "./repositories/index.js";
+import { createWebhookRoutes } from "./routes/webhooks/index.js";
+import { RedisTaskRunRepository, RedisWebhookRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { authMiddleware } from "./middleware/index.js";
 
@@ -16,6 +17,7 @@ const app = new Hono();
 // Initialize dependencies
 const redis = new Redis(config.redisUrl);
 const taskRunRepository = new RedisTaskRunRepository(redis);
+const webhookRepository = new RedisWebhookRepository(redis);
 const streamService = new RedisStreamService(config.redisUrl);
 
 // Middleware
@@ -25,11 +27,13 @@ app.use("*", cors());
 // Auth middleware for protected routes
 app.use("/tasks/*", authMiddleware);
 app.use("/runs/*", authMiddleware);
+app.use("/webhooks/*", authMiddleware);
 
 // Routes
 app.route("/", healthRoutes);
 app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
 app.route("/runs", createRunRoutes(taskRunRepository, streamService));
+app.route("/webhooks", createWebhookRoutes(webhookRepository));
 
 // 404 handler
 app.notFound((c) => {
