@@ -12,7 +12,8 @@ import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { createAuthRoutes } from "./routes/auth/index.js";
 import { createApiKeyRoutes } from "./routes/api-keys/index.js";
 import { createTeamsRoutes } from "./routes/teams/index.js";
-import { PgTaskRunRepository, PgTaskRepository, PgWebhookRepository, PgAgentRepository, PgUserRepository, PgApiKeyRepository, PgTeamRepository } from "./repositories/index.js";
+import { createBillingRoutes } from "./routes/billing/index.js";
+import { PgTaskRunRepository, PgTaskRepository, PgWebhookRepository, PgAgentRepository, PgUserRepository, PgApiKeyRepository, PgTeamRepository, PgPlanRepository, PgSubscriptionRepository, PgUsageRepository, PgInvoiceRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
 import { EventSubscriber } from "./services/event-subscriber.js";
@@ -33,6 +34,10 @@ const agentRepository = new PgAgentRepository(db);
 const userRepository = new PgUserRepository(db);
 const apiKeyRepository = new PgApiKeyRepository(db);
 const teamRepository = new PgTeamRepository(db);
+const planRepository = new PgPlanRepository(db);
+const subscriptionRepository = new PgSubscriptionRepository(db);
+const usageRepository = new PgUsageRepository(db);
+const invoiceRepository = new PgInvoiceRepository(db);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
 const storageService = new StorageService();
@@ -75,6 +80,7 @@ app.use("/webhooks/*", authMiddleware);
 app.use("/agents/*", authMiddleware);
 app.use("/api-keys/*", authMiddleware);
 app.use("/teams/*", authMiddleware);
+app.use("/billing/*", authMiddleware);
 app.use("/auth/me", authMiddleware);
 
 // Routes
@@ -87,6 +93,12 @@ app.route("/webhooks", createWebhookRoutes(webhookRepository, webhookDispatcher)
 app.route("/agents", createAgentsRoutes(agentRepository));
 app.route("/api-keys", createApiKeyRoutes(apiKeyRepository));
 app.route("/teams", createTeamsRoutes(teamRepository));
+app.route("/billing", createBillingRoutes({
+  planRepository,
+  subscriptionRepository,
+  usageRepository,
+  invoiceRepository,
+}));
 
 // 404 handler
 app.notFound((c) => {
