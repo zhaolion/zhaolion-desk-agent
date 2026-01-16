@@ -11,6 +11,7 @@ import { createWebhookRoutes } from "./routes/webhooks/index.js";
 import { RedisTaskRunRepository, RedisTaskRepository, RedisWebhookRepository, RedisAgentRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
 import { WebhookDispatcher } from "./services/webhook-dispatcher.js";
+import { StorageService } from "./services/storage.service.js";
 import { authMiddleware } from "./middleware/index.js";
 
 const config = loadConfig();
@@ -24,6 +25,7 @@ const webhookRepository = new RedisWebhookRepository(redis);
 const agentRepository = new RedisAgentRepository(redis);
 const streamService = new RedisStreamService(config.redisUrl);
 const webhookDispatcher = new WebhookDispatcher(webhookRepository);
+const storageService = new StorageService();
 
 // Middleware
 app.use("*", logger());
@@ -39,7 +41,7 @@ app.use("/agents/*", authMiddleware);
 app.route("/", healthRoutes);
 app.route("/tasks", createTasksRoutes(taskRepository));
 app.route("/tasks", createTaskRunRoutes(taskRunRepository, streamService));
-app.route("/runs", createRunRoutes(taskRunRepository, streamService));
+app.route("/runs", createRunRoutes(taskRunRepository, streamService, storageService));
 app.route("/webhooks", createWebhookRoutes(webhookRepository, webhookDispatcher));
 app.route("/agents", createAgentsRoutes(agentRepository));
 
