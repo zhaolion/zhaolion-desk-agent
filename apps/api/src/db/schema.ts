@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, bigint, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, text, timestamp, integer, boolean, jsonb, bigint, primaryKey, decimal, date } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -97,3 +97,58 @@ export const teamMembers = pgTable("team_members", {
 }, (table) => [
   primaryKey({ columns: [table.teamId, table.userId] }),
 ]);
+
+// Billing tables
+export const plans = pgTable("plans", {
+  id: varchar("id", { length: 50 }).primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  priceMonthly: decimal("price_monthly", { precision: 10, scale: 2 }),
+  priceYearly: decimal("price_yearly", { precision: 10, scale: 2 }),
+  limits: jsonb("limits").notNull(),
+  features: text("features").array(),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id),
+  teamId: uuid("team_id").references(() => teams.id),
+  planId: varchar("plan_id", { length: 50 }).references(() => plans.id).notNull(),
+  status: varchar("status", { length: 20 }).default("active").notNull(),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAt: timestamp("cancel_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const usageRecords = pgTable("usage_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  taskRunId: uuid("task_run_id").references(() => taskRuns.id),
+  type: varchar("type", { length: 50 }).notNull(),
+  amount: bigint("amount", { mode: "number" }).notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const invoices = pgTable("invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+  stripeInvoiceId: varchar("stripe_invoice_id", { length: 255 }),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("USD").notNull(),
+  status: varchar("status", { length: 20 }).default("pending").notNull(),
+  periodStart: timestamp("period_start"),
+  periodEnd: timestamp("period_end"),
+  pdfUrl: text("pdf_url"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
