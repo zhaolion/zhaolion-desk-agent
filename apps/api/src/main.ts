@@ -8,6 +8,7 @@ import { healthRoutes } from "./routes/health.js";
 import { createTaskRunRoutes, createRunRoutes } from "./routes/tasks/index.js";
 import { RedisTaskRunRepository } from "./repositories/index.js";
 import { RedisStreamService } from "./services/redis-stream.service.js";
+import { authMiddleware } from "./middleware/index.js";
 
 const config = loadConfig();
 const app = new Hono();
@@ -20,6 +21,10 @@ const streamService = new RedisStreamService(config.redisUrl);
 // Middleware
 app.use("*", logger());
 app.use("*", cors());
+
+// Auth middleware for protected routes
+app.use("/tasks/*", authMiddleware);
+app.use("/runs/*", authMiddleware);
 
 // Routes
 app.route("/", healthRoutes);
