@@ -3,7 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import type { TaskRunRepository, TaskStreamService } from "@desk-agent/domain/task";
 import type { TaskRun } from "@desk-agent/domain";
-import { createTaskRunSchema } from "./schemas.js";
+import { createTaskRunSchema, humanInputSchema } from "./schemas.js";
 
 // Temporary mock - will be replaced with auth middleware
 const MOCK_USER_ID = "user-123";
@@ -117,6 +117,63 @@ export function createRunRoutes(
         }
       }
     });
+  });
+
+  // POST /runs/:runId/input - Submit human input
+  routes.post(
+    "/:runId/input",
+    zValidator("json", humanInputSchema),
+    async (c) => {
+      const runId = c.req.param("runId");
+      const body = c.req.valid("json");
+
+      const taskRun = await repository.findById(runId);
+      if (!taskRun) {
+        return c.json({ error: "Task run not found" }, 404);
+      }
+
+      if (taskRun.status !== "waiting_input") {
+        return c.json({ error: "Task is not waiting for input" }, 400);
+      }
+
+      await streamService.publishInput(runId, {
+        approved: body.approved,
+        value: body.value,
+        reason: body.reason,
+      });
+
+      return c.json({ success: true });
+    }
+  );
+
+  // POST /runs/:runId/cancel - Cancel task execution
+  routes.post("/:runId/cancel", async (c) => {
+    const runId = c.req.param("runId");
+
+    const taskRun = await repository.findById(runId);
+    if (!taskRun) {
+      return c.json({ error: "Task run not found" }, 404);
+    }
+
+    const terminalStatuses = ["completed", "failed", "cancelled"];
+    if (terminalStatuses.includes(taskRun.status)) {
+      return c.json({ error: "Task is already in terminal state" }, 400);
+    }
+
+    // Update status to cancelled
+    const updated = await repository.update(runId, {
+      status: "cancelled",
+      completedAt: new Date(),
+    });
+
+    // Publish cancel event
+    await streamService.publishEvent(runId, {
+      type: "TASK_FAILED",
+      taskRunId: runId,
+      error: "Cancelled by user",
+    });
+
+    return c.json(serializeTaskRun(updated));
   });
 
   return routes;

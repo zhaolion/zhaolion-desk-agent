@@ -13,13 +13,15 @@
   "dependencies": {
     "@desk-agent/domain": "workspace:*",
     "@desk-agent/shared": "workspace:*",
-    "hono": "^4.6.0",
     "@hono/node-server": "^1.13.0",
-    "ioredis": "^5.4.0"
+    "@hono/zod-validator": "^0.7.6",
+    "hono": "^4.6.0",
+    "ioredis": "^5.4.0",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
-    "@types/node": "^22.0.0"
+    "typescript": "^5.7.0"
   }
 }
