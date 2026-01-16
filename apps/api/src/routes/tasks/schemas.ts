@@ -39,3 +39,11 @@ export const pathParamsSchema = z.object({
 export const runPathParamsSchema = z.object({
   runId: z.string().uuid("Invalid run ID"),
 });
+
+export const humanInputSchema = z.object({
+  approved: z.boolean(),
+  value: z.string().optional(),
+  reason: z.string().optional(),
+});
+
+export type HumanInputRequest = z.infer<typeof humanInputSchema>;
