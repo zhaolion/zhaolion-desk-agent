@@ -8,19 +8,27 @@
     "dev": "tsx watch src/main.ts",
     "start": "node dist/main.js",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@desk-agent/domain": "workspace:*",
     "@desk-agent/shared": "workspace:*",
     "@hono/node-server": "^1.13.0",
     "@hono/zod-validator": "^0.7.6",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.6.0",
     "ioredis": "^5.4.0",
+    "pg": "^8.17.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.16.0",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
