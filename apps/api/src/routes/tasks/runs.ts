@@ -2,9 +2,10 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import type { TaskRunRepository, TaskStreamService } from "@desk-agent/domain/task";
-import type { TaskRun } from "@desk-agent/domain";
+import type { TaskRun, Artifact, LogFile } from "@desk-agent/domain";
 import { createTaskRunSchema, humanInputSchema } from "./schemas.js";
 import type { AuthContext } from "../../middleware/index.js";
+import type { StorageService } from "../../services/storage.service.js";
 
 // Default agent ID - will be replaced with proper agent resolution later
 const DEFAULT_AGENT_ID = "agent-default";
@@ -44,7 +45,8 @@ export function createTaskRunRoutes(
 
 export function createRunRoutes(
   repository: TaskRunRepository,
-  streamService: TaskStreamService
+  streamService: TaskStreamService,
+  storageService: StorageService
 ): Hono {
   const routes = new Hono();
 
@@ -177,6 +179,74 @@ export function createRunRoutes(
     return c.json(serializeTaskRun(updated));
   });
 
+  // GET /runs/:runId/logs - List log files
+  routes.get("/:runId/logs", async (c) => {
+    const runId = c.req.param("runId");
+    const taskRun = await repository.findById(runId);
+    if (!taskRun) {
+      return c.json({ error: "Task run not found" }, 404);
+    }
+
+    const logs = await storageService.listLogs(runId);
+    return c.json(logs.map(serializeLogFile));
+  });
+
+  // GET /runs/:runId/logs/:channel - Get log content
+  routes.get("/:runId/logs/:channel", async (c) => {
+    const runId = c.req.param("runId");
+    const channel = c.req.param("channel");
+    const tail = c.req.query("tail");
+
+    const taskRun = await repository.findById(runId);
+    if (!taskRun) {
+      return c.json({ error: "Task run not found" }, 404);
+    }
+
+    const content = await storageService.getLog(runId, channel, tail ? parseInt(tail) : undefined);
+
+    if (content === null) {
+      return c.json({ error: "Log not found" }, 404);
+    }
+
+    return c.text(content);
+  });
+
+  // GET /runs/:runId/artifacts - List artifacts
+  routes.get("/:runId/artifacts", async (c) => {
+    const runId = c.req.param("runId");
+    const taskRun = await repository.findById(runId);
+    if (!taskRun) {
+      return c.json({ error: "Task run not found" }, 404);
+    }
+
+    const artifacts = await storageService.listArtifacts(runId);
+    return c.json(artifacts.map(serializeArtifact));
+  });
+
+  // GET /runs/:runId/artifacts/:name - Download artifact
+  routes.get("/:runId/artifacts/:name", async (c) => {
+    const runId = c.req.param("runId");
+    const name = c.req.param("name");
+
+    const taskRun = await repository.findById(runId);
+    if (!taskRun) {
+      return c.json({ error: "Task run not found" }, 404);
+    }
+
+    const data = await storageService.getArtifact(runId, name);
+
+    if (data === null) {
+      return c.json({ error: "Artifact not found" }, 404);
+    }
+
+    return new Response(new Uint8Array(data), {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${name}"`,
+      },
+    });
+  });
+
   return routes;
 }
 
@@ -187,5 +257,19 @@ function serializeTaskRun(taskRun: TaskRun): Record<string, unknown> {
     startedAt: taskRun.startedAt?.toISOString() ?? null,
     completedAt: taskRun.completedAt?.toISOString() ?? null,
     syncedAt: taskRun.syncedAt?.toISOString() ?? null,
+  };
+}
+
+function serializeLogFile(log: LogFile): Record<string, unknown> {
+  return {
+    ...log,
+    createdAt: log.createdAt.toISOString(),
+  };
+}
+
+function serializeArtifact(artifact: Artifact): Record<string, unknown> {
+  return {
+    ...artifact,
+    createdAt: artifact.createdAt.toISOString(),
   };
 }
