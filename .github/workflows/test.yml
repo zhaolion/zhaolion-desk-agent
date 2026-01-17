@@ -1,0 +1,75 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: desk_agent_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build
+        run: pnpm build
+
+      - name: Run tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5433/desk_agent_test
+          REDIS_URL: redis://localhost:6380
+          JWT_SECRET: test-jwt-secret
+
+      - name: Install Playwright
+        run: pnpm --filter @desk-agent/web exec playwright install chromium
+        if: hashFiles('apps/web/package.json') != ''
+        continue-on-error: true
+
+      - name: Run E2E tests
+        run: pnpm --filter @desk-agent/web test:e2e
+        if: hashFiles('apps/web/e2e') != ''
+        continue-on-error: true
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5433/desk_agent_test
+          REDIS_URL: redis://localhost:6380
+          JWT_SECRET: test-jwt-secret
